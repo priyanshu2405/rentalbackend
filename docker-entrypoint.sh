@@ -18,7 +18,9 @@ php artisan view:cache || true
 if [ "$RUN_MIGRATIONS" = "true" ]; then
     echo "Running database migrations..."
     php artisan migrate --force
-fi
+# Ensure web server (www-data) owns all storage and cache directories
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 echo "Starting Apache web server on port $PORT..."
 exec apache2-foreground
