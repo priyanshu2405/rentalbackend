@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: neighbours-rental-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /up
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: RUN_MIGRATIONS
+        value: true
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_PORT
+        value: 3306
+      - key: DB_HOST
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MYSQL_ATTR_SSL_CA
+        value: /etc/ssl/certs/ca-certificates.crt
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: MAIL_MAILER
+        value: log
+      - key: NR_CURRENCY
+        value: CAD
+      - key: NR_SERVICE_FEE_PERCENT
+        value: 10
+      - key: NR_TAX_PERCENT
+        value: 0
+      - key: NR_PAYMENT_WINDOW_HOURS
+        value: 48
+      - key: NR_PAYOUT_DELAY_DAYS
+        value: 1
+      - key: NR_AUTO_APPROVE_LISTINGS
+        value: false
+      - key: NR_VERIFICATION_CODE_TTL_MINUTES
+        value: 15

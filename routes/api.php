@@ -1,0 +1,152 @@
+<?php
+
+use App\Http\Controllers\Api\Admin\ListingModerationController;
+use App\Http\Controllers\Api\Admin\SupportAdminController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\EarningsController;
+use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\SupportCaseController;
+use App\Http\Controllers\Api\UserController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Neighbours Rental API  –  base URL: /api/v1
+|--------------------------------------------------------------------------
+| Auth: "Authorization: Bearer {token}" (Laravel Sanctum). Always send "Accept: application/json".
+*/
+
+Route::prefix('v1')->group(function () {
+
+    // ---- Public ----------------------------------------------------------
+    Route::get('meta', [MetaController::class, 'meta']);
+    Route::get('categories', [MetaController::class, 'categories']);
+
+    Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
+        Route::post('register', [AuthController::class, 'register']);
+        Route::post('login', [AuthController::class, 'login']);
+        Route::post('google', [AuthController::class, 'google']);
+        Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('reset-password', [AuthController::class, 'resetPassword']);
+    });
+
+    // ---- Authenticated ---------------------------------------------------
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // Account
+        Route::prefix('auth')->group(function () {
+            Route::get('me', [AuthController::class, 'me']);
+            Route::post('logout', [AuthController::class, 'logout']);
+            Route::post('verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:10,1');
+            Route::post('resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1');
+            Route::post('change-email', [AuthController::class, 'changeEmail'])->middleware('throttle:5,1');
+        });
+
+        Route::prefix('profile')->group(function () {
+            Route::put('/', [ProfileController::class, 'update']);
+            Route::post('avatar', [ProfileController::class, 'uploadAvatar']);
+            Route::put('location', [ProfileController::class, 'updateLocation']);
+            Route::put('notification-settings', [ProfileController::class, 'updateNotificationSettings']);
+            Route::put('password', [ProfileController::class, 'changePassword']);
+            Route::delete('/', [ProfileController::class, 'destroy']);
+        });
+
+        Route::get('users/{user}', [UserController::class, 'show']);
+
+        // Explore / search / item details
+        Route::get('items', [ItemController::class, 'index']);
+        Route::get('items/popular', [ItemController::class, 'popular']);
+        Route::get('items/{item}', [ItemController::class, 'show']);
+        Route::get('items/{item}/availability', [ItemController::class, 'availability']);
+        Route::get('items/{item}/quote', [ItemController::class, 'quote']);
+
+        // Favorites
+        Route::get('favorites', [FavoriteController::class, 'index']);
+        Route::post('items/{item}/favorite', [FavoriteController::class, 'store']);
+        Route::delete('items/{item}/favorite', [FavoriteController::class, 'destroy']);
+
+        // My listings (owner)
+        Route::get('listings/summary', [ListingController::class, 'summary']);
+        Route::get('listings', [ListingController::class, 'index']);
+        Route::post('listings', [ListingController::class, 'store']);
+        Route::get('listings/{item}', [ListingController::class, 'show']);
+        Route::put('listings/{item}', [ListingController::class, 'update']);
+        Route::delete('listings/{item}', [ListingController::class, 'destroy']);
+        Route::post('listings/{item}/photos', [ListingController::class, 'uploadPhotos']);
+        Route::put('listings/{item}/photos/order', [ListingController::class, 'reorderPhotos']);
+        Route::delete('listings/{item}/photos/{photo}', [ListingController::class, 'deletePhoto']);
+        Route::put('listings/{item}/availability', [ListingController::class, 'updateAvailability']);
+        Route::post('listings/{item}/submit', [ListingController::class, 'submit']);
+        Route::post('listings/{item}/pause', [ListingController::class, 'pause']);
+        Route::post('listings/{item}/resume', [ListingController::class, 'resume']);
+
+        // Bookings
+        Route::get('bookings', [BookingController::class, 'index']);
+        Route::post('bookings', [BookingController::class, 'store']);
+        Route::get('bookings/{booking}', [BookingController::class, 'show']);
+        Route::post('bookings/{booking}/accept', [BookingController::class, 'accept']);
+        Route::post('bookings/{booking}/decline', [BookingController::class, 'decline']);
+        Route::post('bookings/{booking}/pay', [BookingController::class, 'pay']);
+        Route::get('bookings/{booking}/refund-estimate', [BookingController::class, 'refundEstimate']);
+        Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+        Route::post('bookings/{booking}/pickup', [BookingController::class, 'pickup']);
+        Route::post('bookings/{booking}/return', [BookingController::class, 'returnItem']);
+        Route::post('bookings/{booking}/confirm-return', [BookingController::class, 'confirmReturn']);
+        Route::post('bookings/{booking}/review', [BookingController::class, 'review']);
+        Route::get('bookings/{booking}/timeline', [BookingController::class, 'timeline']);
+        Route::get('bookings/{booking}/receipt', [BookingController::class, 'receipt']);
+        Route::get('bookings/{booking}/extension-quote', [BookingController::class, 'extensionQuote']);
+        Route::post('bookings/{booking}/extensions', [BookingController::class, 'requestExtension']);
+        Route::post('extensions/{extension}/approve', [BookingController::class, 'approveExtension']);
+        Route::post('extensions/{extension}/decline', [BookingController::class, 'declineExtension']);
+
+        // Messages
+        Route::get('conversations', [ConversationController::class, 'index']);
+        Route::post('conversations', [ConversationController::class, 'store']);
+        Route::get('conversations/{conversation}', [ConversationController::class, 'show']);
+        Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages']);
+        Route::post('conversations/{conversation}/messages', [ConversationController::class, 'send'])->middleware('throttle:60,1');
+        Route::post('conversations/{conversation}/read', [ConversationController::class, 'read']);
+
+        // Notifications
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
+
+        // Payments (renter)
+        Route::get('payment-methods', [PaymentController::class, 'methods']);
+        Route::post('payment-methods', [PaymentController::class, 'addMethod']);
+        Route::post('payment-methods/{paymentMethod}/default', [PaymentController::class, 'makeDefault']);
+        Route::delete('payment-methods/{paymentMethod}', [PaymentController::class, 'removeMethod']);
+        Route::get('billing-history', [PaymentController::class, 'history']);
+
+        // Earnings (owner)
+        Route::get('earnings', [EarningsController::class, 'index']);
+        Route::get('earnings/payouts', [EarningsController::class, 'payouts']);
+        Route::put('earnings/payout-account', [EarningsController::class, 'savePayoutAccount']);
+        Route::post('earnings/withdraw', [EarningsController::class, 'withdraw']);
+
+        // Support
+        Route::get('support-cases', [SupportCaseController::class, 'index']);
+        Route::post('support-cases', [SupportCaseController::class, 'store']);
+        Route::get('support-cases/{supportCase}', [SupportCaseController::class, 'show']);
+
+        // Admin
+        Route::prefix('admin')->middleware('admin')->group(function () {
+            Route::get('listings', [ListingModerationController::class, 'index']);
+            Route::post('listings/{item}/approve', [ListingModerationController::class, 'approve']);
+            Route::post('listings/{item}/reject', [ListingModerationController::class, 'reject']);
+            Route::get('support-cases', [SupportAdminController::class, 'index']);
+            Route::put('support-cases/{supportCase}', [SupportAdminController::class, 'update']);
+        });
+    });
+});
