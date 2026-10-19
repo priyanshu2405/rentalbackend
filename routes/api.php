@@ -36,10 +36,41 @@ Route::prefix('v1')->group(function () {
         if ($key !== 'neighbours-rental-seed' && $key !== config('app.key')) {
             abort(403, 'Unauthorized');
         }
+
+        $loc = strtolower((string) ($request->input('location') ?? $request->input('city') ?? 'edmonton'));
+        if ($loc === 'indore' || $loc === 'mp' || $loc === 'india') {
+            putenv('SEED_CITY=Indore');
+            putenv('SEED_PROVINCE=MP');
+            putenv('SEED_LAT=22.7179');
+            putenv('SEED_LNG=75.8334');
+            $_ENV['SEED_CITY'] = 'Indore';
+            $_ENV['SEED_PROVINCE'] = 'MP';
+            $_ENV['SEED_LAT'] = '22.7179';
+            $_ENV['SEED_LNG'] = '75.8334';
+            config(['neighbours.default_location' => ['lat' => 22.7179, 'lng' => 75.8334, 'label' => 'Indore, MP']]);
+        } else {
+            putenv('SEED_CITY=Edmonton');
+            putenv('SEED_PROVINCE=AB');
+            putenv('SEED_LAT=53.5444');
+            putenv('SEED_LNG=-113.4909');
+            $_ENV['SEED_CITY'] = 'Edmonton';
+            $_ENV['SEED_PROVINCE'] = 'AB';
+            $_ENV['SEED_LAT'] = '53.5444';
+            $_ENV['SEED_LNG'] = '-113.4909';
+            config(['neighbours.default_location' => ['lat' => 53.5461, 'lng' => -113.4938, 'label' => 'Edmonton, AB']]);
+        }
+
         \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        $city = env('SEED_CITY', 'Edmonton');
+        $prov = env('SEED_PROVINCE', 'AB');
         return response()->json([
             'success' => true,
-            'message' => 'Database seeded successfully for ' . env('SEED_CITY', 'Indore') . '!',
+            'message' => "Database seeded successfully for {$city}, {$prov}!",
+            'location' => [
+                'city' => $city,
+                'province' => $prov,
+                'default' => config('neighbours.default_location'),
+            ],
             'output' => \Illuminate\Support\Facades\Artisan::output(),
         ]);
     });
@@ -164,4 +195,5 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+
 

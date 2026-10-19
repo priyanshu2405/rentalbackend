@@ -16,32 +16,51 @@ use Illuminate\Support\Str;
 
 /**
  * Demo data mirroring the Flutter prototype.
- * Configurable for any city / coordinates via SEED_LAT, SEED_LNG, SEED_CITY, SEED_PROVINCE.
- * Default: Indore, MP (22.7179, 75.8334)
+ * Configurable for Edmonton, AB or Indore, MP (or any coordinates via SEED_LAT/SEED_LNG/SEED_CITY/SEED_PROVINCE).
  * Every demo account uses the password: Password123
  */
 class DatabaseSeeder extends Seeder
 {
-    private function areas(): array
+    private function config(): array
     {
-        $baseLat = (float) env('SEED_LAT', 22.7179);
-        $baseLng = (float) env('SEED_LNG', 75.8334);
+        $city = env('SEED_CITY', 'Edmonton');
+        $province = env('SEED_PROVINCE', 'AB');
+        $isEdmonton = strcasecmp($city, 'Edmonton') === 0;
 
-        return [
-            'Vijay Nagar' => [$baseLat + 0.0354, $baseLng + 0.0603],
-            'Palasia' => [$baseLat + 0.0065, $baseLng + 0.0505],
-            'Rajwada' => [$baseLat + 0.0017, $baseLng + 0.0243],
-            'Bhawarkua' => [$baseLat - 0.0253, $baseLng + 0.0342],
-            'Annapurna' => [$baseLat - 0.0205, $baseLng - 0.0012],
-            'Central' => [$baseLat, $baseLng],
-        ];
+        if ($isEdmonton) {
+            $areas = [
+                'Mill Woods' => [53.4568, -113.4326],
+                'Downtown' => [53.5444, -113.4909],
+                'North Edmonton' => [53.6010, -113.4800],
+                'West Edmonton' => [53.5225, -113.6240],
+                'Oliver' => [53.5420, -113.5170],
+                'Rutherford' => [53.4170, -113.5250],
+            ];
+            $postalAlex = 'T6K 2N5';
+            $postalDryer = 'T6L 4X4';
+            $addressDryer = '123 Mill Woods Road NW';
+        } else {
+            $baseLat = (float) env('SEED_LAT', 22.7179);
+            $baseLng = (float) env('SEED_LNG', 75.8334);
+            $areas = [
+                'Vijay Nagar' => [$baseLat + 0.0354, $baseLng + 0.0603],
+                'Palasia' => [$baseLat + 0.0065, $baseLng + 0.0505],
+                'Rajwada' => [$baseLat + 0.0017, $baseLng + 0.0243],
+                'Bhawarkua' => [$baseLat - 0.0253, $baseLng + 0.0342],
+                'Annapurna' => [$baseLat - 0.0205, $baseLng - 0.0012],
+                'Central' => [$baseLat, $baseLng],
+            ];
+            $postalAlex = '452010';
+            $postalDryer = '452010';
+            $addressDryer = 'Near Central Park';
+        }
+
+        return [$city, $province, $areas, $postalAlex, $postalDryer, $addressDryer];
     }
 
     public function run(): void
     {
-        $areas = $this->areas();
-        $city = env('SEED_CITY', 'Indore');
-        $province = env('SEED_PROVINCE', 'MP');
+        [$city, $province, $areas, $postalAlex, $postalDryer, $addressDryer] = $this->config();
         $areaKeys = array_keys($areas);
 
         $categories = collect([
@@ -51,10 +70,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Events', 'slug' => 'events', 'icon' => 'celebration'],
         ])->map(fn ($c, $i) => Category::firstOrCreate(['slug' => $c['slug']], [...$c, 'sort_order' => $i]))->keyBy('name');
 
-        $admin = $this->user('Admin', 'admin@neighboursrental.ca', $areaKeys[5], $areas, $city, $province);
+        $admin = $this->user('Admin', 'admin@neighboursrental.ca', $areaKeys[1] ?? $areaKeys[0], $areas, $city, $province);
         $admin->forceFill(['is_admin' => true])->save();
 
-        $alex = $this->user('Alex Taylor', 'alex@example.com', $areaKeys[0], $areas, $city, $province, '452010');
+        $alex = $this->user('Alex Taylor', 'alex@example.com', $areaKeys[0], $areas, $city, $province, $postalAlex);
         $users = collect(['Maya', 'Taylor', 'Jamie', 'Sarah', 'Priya', 'Liam', 'Noor', 'Owen', 'Sam'])
             ->mapWithKeys(fn ($n) => [$n => $this->user($n, strtolower($n).'@example.com', $areaKeys[crc32($n) % count($areaKeys)], $areas, $city, $province)]);
         $users['Maya']->update(['bio' => "Hi! I love keeping great home and outdoor items in excellent condition and sharing them with neighbours. Feel free to reach out with any questions!"]);
@@ -64,28 +83,28 @@ class DatabaseSeeder extends Seeder
             'description' => 'Compact and powerful portable dryer, perfect for apartments, dorms, or small spaces. Easy to set up and use. Works great for everyday clothes, towels, and bedding.',
             'accessories' => ['Exhaust hose', 'Window vent adapter', 'User manual'], 'tags' => ['Portable', 'Compact', 'Easy setup'],
             'rental_rules' => 'Clean and return in same condition. Indoor use only.',
-            'pickup_address' => 'Near Central Park', 'postal_code' => '452010',
+            'pickup_address' => $addressDryer, 'postal_code' => $postalDryer,
         ], 4.9, 18);
 
-        $drill = $this->item($users['Taylor'], $categories['Tools'], $areaKeys[1], $areas, $city, $province, [
+        $drill = $this->item($users['Taylor'], $categories['Tools'], $areaKeys[1] ?? $areaKeys[0], $areas, $city, $province, [
             'title' => 'Cordless Drill', 'brand' => 'Makita', 'model' => '18V LXT Drill Driver', 'condition' => 'good', 'daily_rate' => 15,
             'description' => 'Makita 18V LXT drill driver with two batteries and charger.', 'accessories' => ['2 batteries', 'Charger', 'Bit set'],
         ], 4.8, 31);
 
-        $tent = $this->item($users['Jamie'], $categories['Outdoors'], $areaKeys[2], $areas, $city, $province, [
+        $tent = $this->item($users['Jamie'], $categories['Outdoors'], $areaKeys[2] ?? $areaKeys[0], $areas, $city, $province, [
             'title' => 'Camping Tent', 'condition' => 'good', 'daily_rate' => 18, 'description' => '4-person dome tent, waterproof, quick setup.',
         ], 4.9, 18);
 
-        $this->item($users['Sarah'], $categories['Events'], $areaKeys[3], $areas, $city, $province, [
+        $this->item($users['Sarah'], $categories['Events'], $areaKeys[3] ?? $areaKeys[0], $areas, $city, $province, [
             'title' => 'Event Canopy', 'condition' => 'like_new', 'daily_rate' => 50, 'description' => '10x20 ft pop-up canopy with side walls.',
             'offers_delivery' => true, 'delivery_radius_km' => 10, 'delivery_fee' => 15,
         ], 4.9, 12);
 
         foreach ([
-            ['Priya', 'Stackable Dryer', $areaKeys[4], 25, ['Electric', 'Stackable', 'Large capacity'], 4.8, 12],
+            ['Priya', 'Stackable Dryer', $areaKeys[4] ?? $areaKeys[0], 25, ['Electric', 'Stackable', 'Large capacity'], 4.8, 12],
             ['Liam', 'Full Size Dryer', $areaKeys[0], 28, ['Full size', 'High capacity', 'Electric'], 4.9, 8],
-            ['Noor', 'Compact Dryer', $areaKeys[1], 18, ['Compact', 'Portable', 'Energy efficient'], 4.7, 9],
-            ['Owen', 'Premium Dryer', $areaKeys[2], 32, ['Large capacity', 'Multiple cycles', 'Modern'], 5.0, 6],
+            ['Noor', 'Compact Dryer', $areaKeys[1] ?? $areaKeys[0], 18, ['Compact', 'Portable', 'Energy efficient'], 4.7, 9],
+            ['Owen', 'Premium Dryer', $areaKeys[2] ?? $areaKeys[0], 32, ['Large capacity', 'Multiple cycles', 'Modern'], 5.0, 6],
         ] as [$owner, $title, $area, $rate, $tags, $rating, $reviews]) {
             $this->item($users[$owner], $categories['Appliances'], $area, $areas, $city, $province, [
                 'title' => $title, 'condition' => 'good', 'daily_rate' => $rate, 'tags' => $tags,
