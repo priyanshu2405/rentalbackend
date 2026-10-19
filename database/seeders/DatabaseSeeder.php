@@ -63,8 +63,8 @@ class DatabaseSeeder extends Seeder
             'Rohan' => ['name' => 'Rohan Gupta', 'email' => 'rohan@example.com', 'area' => 'Annapurna', 'city' => 'Indore', 'prov' => 'MP', 'lat' => 22.6974, 'lng' => 75.8322, 'postal' => '452009'],
         ];
 
-        $users = collect($usersData)->map(function ($u) {
-            return User::updateOrCreate(
+        $users = collect($usersData)->mapWithKeys(function ($u, $key) {
+            $user = User::updateOrCreate(
                 ['email' => $u['email']],
                 [
                     'name' => $u['name'], 'password' => 'Password123', 'email_verified_at' => now(),
@@ -74,6 +74,7 @@ class DatabaseSeeder extends Seeder
                     'bio' => $u['bio'] ?? null,
                 ]
             );
+            return [$key => $user];
         });
 
         // 4. Unique items for EACH neighbourhood
@@ -339,8 +340,11 @@ class DatabaseSeeder extends Seeder
         // 5. Insert all items
         $createdItems = [];
         foreach ($itemsCatalog as $itemData) {
-            $owner = $users[$itemData['owner']];
-            $cat = $categories[$itemData['category']];
+            $owner = $users->get($itemData['owner']);
+            $cat = $categories->get($itemData['category']);
+            if (! $owner || ! $cat) {
+                continue;
+            }
 
             $item = Item::updateOrCreate(
                 ['user_id' => $owner->id, 'title' => $itemData['title']],
@@ -379,63 +383,76 @@ class DatabaseSeeder extends Seeder
             $createdItems[$itemData['title']] = $item;
         }
 
-        // 6. Confirmed booking NR1042 on Maya's Portable Dryer
-        $dryer = $createdItems['Portable Dryer'];
-        $drill = $createdItems['Cordless Drill Driver Kit'];
-        $alex = $users['Alex'];
+        // 6. Confirmed booking NR1042 on Maya's Portable Dryer (safe upsert)
+        $dryer = $createdItems['Portable Dryer'] ?? null;
+        $drill = $createdItems['Cordless Drill Driver Kit'] ?? null;
+        $alex = $users->get('Alex');
+        $maya = $users->get('Maya');
 
-        $card = PaymentMethod::firstOrCreate(
-            ['user_id' => $alex->id, 'last4' => '4242'],
-            ['brand' => 'VISA', 'exp_month' => 8, 'exp_year' => 2028, 'is_default' => true]
-        );
+        if ($dryer && $drill && $alex && $maya) {
+            try {
+                $card = PaymentMethod::firstOrCreate(
+                    ['user_id' => $alex->id, 'last4' => '4242'],
+                    ['brand' => 'VISA', 'exp_month' => 8, 'exp_year' => 2028, 'is_default' => true]
+                );
 
-        $start = now()->addDays(5)->startOfDay();
-        $booking = Booking::firstOrCreate(
-            ['code' => 'NR1042'],
-            [
-                'item_id' => $dryer->id, 'renter_id' => $alex->id, 'owner_id' => $users['Maya']->id,
-                'start_date' => $start, 'end_date' => $start->copy()->addDays(2), 'pickup_time' => '10:00', 'return_time' => '10:00', 'days' => 3,
-                'message' => "Hi Maya! I'd like to rent your dryer for a few days while mine is being repaired.",
-                'daily_rate' => 20, 'rental_subtotal' => 60, 'service_fee' => 6, 'delivery_fee' => 0, 'taxes' => 0, 'security_deposit' => 0, 'total' => 66,
-                'status' => Booking::CONFIRMED, 'cancellation_policy' => 'flexible',
-                'accepted_at' => now()->subDay(), 'paid_at' => now()->subHours(20),
-            ]
-        );
+                $start = now()->addDays(5)->startOfDay();
+                $booking = Booking::firstOrCreate(
+                    ['code' => 'NR1042'],
+                    [
+                        'item_id' => $dryer->id, 'renter_id' => $alex->id, 'owner_id' => $maya->id,
+                        'start_date' => $start, 'end_date' => $start->copy()->addDays(2), 'pickup_time' => '10:00', 'return_time' => '10:00', 'days' => 3,
+                        'message' => "Hi Maya! I'd like to rent your dryer for a few days while mine is being repaired.",
+                        'daily_rate' => 20, 'rental_subtotal' => 60, 'service_fee' => 6, 'delivery_fee' => 0, 'taxes' => 0, 'security_deposit' => 0, 'total' => 66,
+                        'status' => Booking::CONFIRMED, 'cancellation_policy' => 'flexible',
+                        'accepted_at' => now()->subDay(), 'paid_at' => now()->subHours(20),
+                    ]
+                );
+                $booking->update(['item_id' => $dryer->id, 'owner_id' => $maya->id, 'renter_id' => $alex->id]);
 
-        Payment::firstOrCreate(
-            ['booking_id' => $booking->id, 'type' => 'charge'],
-            ['user_id' => $alex->id, 'payment_method_id' => $card->id, 'status' => 'succeeded', 'amount' => 66, 'provider_reference' => 'ch_'.Str::random(20), 'description' => 'Booking NR1042']
-        );
-        Payout::firstOrCreate(
-            ['booking_id' => $booking->id, 'owner_id' => $users['Maya']->id],
-            ['amount' => 60, 'status' => Payout::PENDING]
-        );
+                Payment::firstOrCreate(
+                    ['booking_id' => $booking->id, 'type' => 'charge'],
+                    ['user_id' => $alex->id, 'payment_method_id' => $card->id, 'status' => 'succeeded', 'amount' => 66, 'provider_reference' => 'ch_'.Str::random(20), 'description' => 'Booking NR1042']
+                );
 
-        // Pending request on Taylor's drill
-        Booking::firstOrCreate(
-            ['code' => 'NR20315'],
-            [
-                'item_id' => $drill->id, 'renter_id' => $users['Sam']->id, 'owner_id' => $users['Taylor']->id,
-                'start_date' => now()->addDays(10), 'end_date' => now()->addDays(10), 'days' => 1, 'message' => 'Hi! Is the drill still available this weekend?',
-                'daily_rate' => 15, 'rental_subtotal' => 15, 'service_fee' => 1.5, 'total' => 16.5, 'status' => Booking::REQUESTED,
-            ]
-        );
+                Payout::firstOrCreate(
+                    ['booking_id' => $booking->id],
+                    ['owner_id' => $maya->id, 'amount' => 60, 'status' => Payout::PENDING]
+                );
 
-        try {
-            $messaging = app(MessagingService::class);
-            $chat = $messaging->bookingConversation($booking);
-            $messaging->post($chat, $users['Maya'], "Hi Alex! The portable dryer is ready for your booking. Would you like to pick it up at my place in Mill Woods?");
-            $messaging->post($chat->load('participants'), $alex, "Hi Maya! Yes, I can pick it up around 10:00 AM. Is that time still good for you?");
-            $messaging->post($chat->load('participants'), $users['Maya'], "Sounds good! I'll have the portable dryer ready for pickup.");
-        } catch (\Throwable $e) {
-            // Ignore if chat already exists
+                // Pending request on Taylor's drill
+                $taylor = $users->get('Taylor');
+                $sam = $users->get('Sam');
+                if ($taylor && $sam) {
+                    Booking::firstOrCreate(
+                        ['code' => 'NR20315'],
+                        [
+                            'item_id' => $drill->id, 'renter_id' => $sam->id, 'owner_id' => $taylor->id,
+                            'start_date' => now()->addDays(10), 'end_date' => now()->addDays(10), 'days' => 1, 'message' => 'Hi! Is the drill still available this weekend?',
+                            'daily_rate' => 15, 'rental_subtotal' => 15, 'service_fee' => 1.5, 'total' => 16.5, 'status' => Booking::REQUESTED,
+                        ]
+                    );
+                }
+
+                $messaging = app(MessagingService::class);
+                $chat = $messaging->bookingConversation($booking);
+                $messaging->post($chat, $maya, "Hi Alex! The portable dryer is ready for your booking. Would you like to pick it up at my place in Mill Woods?");
+                $messaging->post($chat->load('participants'), $alex, "Hi Maya! Yes, I can pick it up around 10:00 AM. Is that time still good for you?");
+                $messaging->post($chat->load('participants'), $maya, "Sounds good! I'll have the portable dryer ready for pickup.");
+            } catch (\Throwable $e) {
+                // Ignore if booking / conversation already initialized
+            }
+
+            try {
+                $alex->favoriteItems()->syncWithoutDetaching([$dryer->id, $drill->id]);
+            } catch (\Throwable $e) {}
+
+            try {
+                AppNotification::firstOrCreate(
+                    ['user_id' => $alex->id, 'title' => 'Booking accepted'],
+                    ['type' => 'booking_accepted', 'category' => 'bookings', 'body' => 'Portable Dryer â€¢ NR1042 â€¢ Owned by Maya', 'data' => ['booking_id' => $booking->id]]
+                );
+            } catch (\Throwable $e) {}
         }
-
-        $alex->favoriteItems()->syncWithoutDetaching([$dryer->id, $drill->id]);
-
-        AppNotification::firstOrCreate(
-            ['user_id' => $alex->id, 'title' => 'Booking accepted'],
-            ['type' => 'booking_accepted', 'category' => 'bookings', 'body' => 'Portable Dryer â€¢ NR1042 â€¢ Owned by Maya', 'data' => ['booking_id' => $booking->id]]
-        );
     }
 }

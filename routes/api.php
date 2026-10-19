@@ -60,19 +60,27 @@ Route::prefix('v1')->group(function () {
             config(['neighbours.default_location' => ['lat' => 53.5461, 'lng' => -113.4938, 'label' => 'Edmonton, AB']]);
         }
 
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        $city = env('SEED_CITY', 'Edmonton');
-        $prov = env('SEED_PROVINCE', 'AB');
-        return response()->json([
-            'success' => true,
-            'message' => "Database seeded successfully for {$city}, {$prov}!",
-            'location' => [
-                'city' => $city,
-                'province' => $prov,
-                'default' => config('neighbours.default_location'),
-            ],
-            'output' => \Illuminate\Support\Facades\Artisan::output(),
-        ]);
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $city = env('SEED_CITY', 'Edmonton');
+            $prov = env('SEED_PROVINCE', 'AB');
+            return response()->json([
+                'success' => true,
+                'message' => "Database seeded successfully for {$city}, {$prov}!",
+                'location' => [
+                    'city' => $city,
+                    'province' => $prov,
+                    'default' => config('neighbours.default_location'),
+                ],
+                'output' => \Illuminate\Support\Facades\Artisan::output(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ], 500);
+        }
     });
 
     Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
@@ -195,5 +203,6 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+
 
 
