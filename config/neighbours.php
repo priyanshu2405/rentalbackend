@@ -24,7 +24,7 @@ return [
     'max_check_photos' => 5,
 
     // Default search centre when neither the request nor the user supplies a location (Edmonton, AB).
-    'default_location' => ['lat' => 53.5461, 'lng' => -113.4938, 'label' => 'Edmonton, AB'],
+    'default_location' => ['lat' => (float) env('DEFAULT_LAT', 22.7179), 'lng' => (float) env('DEFAULT_LNG', 75.8334), 'label' => env('DEFAULT_LOCATION_LABEL', 'Indore, MP')],
     'default_radius_km' => 10,
 
     'google_client_ids' => array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', '')))),
@@ -46,3 +46,4 @@ return [
      */
     'cancellation_policies' => ['flexible', 'moderate'],
 ];
+
