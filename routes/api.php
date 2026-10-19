@@ -30,6 +30,20 @@ Route::prefix('v1')->group(function () {
     Route::get('meta', [MetaController::class, 'meta']);
     Route::get('categories', [MetaController::class, 'categories']);
 
+    // ---- Database Seeder (for Render environments without Web Shell) ----
+    Route::match(['get', 'post'], 'dev/seed', function (\Illuminate\Http\Request $request) {
+        $key = $request->input('key') ?? $request->header('X-Seed-Key');
+        if ($key !== 'neighbours-rental-seed' && $key !== config('app.key')) {
+            abort(403, 'Unauthorized');
+        }
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Database seeded successfully for ' . env('SEED_CITY', 'Indore') . '!',
+            'output' => \Illuminate\Support\Facades\Artisan::output(),
+        ]);
+    });
+
     Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('login', [AuthController::class, 'login']);
@@ -150,3 +164,4 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+

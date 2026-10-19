@@ -26,6 +26,12 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     php artisan migrate --force
 fi
 
+# Auto-run database seeder if enabled via environment variable
+if [ "$RUN_SEEDER" = "true" ]; then
+    echo "Running database seeder..."
+    php artisan db:seed --force
+fi
+
 # Ensure web server (www-data) owns all storage and cache directories
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
