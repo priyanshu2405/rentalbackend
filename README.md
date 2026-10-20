@@ -164,9 +164,29 @@ The exact pickup address is only revealed to the renter after payment.
 | POST | /earnings/withdraw | Withdraw available balance |
 
 ### Admin (is_admin users)
-`GET /admin/listings?status=pending`, `POST /admin/listings/{id}/approve`, `POST /admin/listings/{id}/reject` (`reason`),
-`GET /admin/support-cases`, `PUT /admin/support-cases/{id}` (`status=reviewing|resolved, resolution, refund_amount, message`).
+Used by the separate admin panel (`neighbours_rental_admin`).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /admin/dashboard | Queue counts, last-30-day money, bookings per day, latest bookings |
+| GET | /admin/listings?status=pending\|active\|paused\|rejected\|draft\|all&search= | Listings to moderate |
+| POST | /admin/listings/{id}/approve | Approve (goes live) |
+| POST | /admin/listings/{id}/reject | Reject (`reason`, shown to owner) |
+| POST | /admin/listings/{id}/pause | Take down a live listing (`reason`) |
+| GET | /admin/support-cases?status= | Support cases |
+| PUT | /admin/support-cases/{id} | `status=reviewing\|resolved, resolution, refund_amount, message` |
+| GET | /admin/users?search=&filter=all\|suspended\|admins\|unverified | People |
+| GET | /admin/users/{id} | Person + their listings and bookings |
+| POST | /admin/users/{id}/suspend, /unsuspend | Suspend (`reason`; signs out, blocks login, pauses listings) / lift |
+| PUT | /admin/users/{id}/admin | Grant or remove admin (`is_admin`) |
+| GET | /admin/bookings?status=a,b&search= | All bookings |
+| GET | /admin/bookings/{id} | Booking + payments, payout, support cases |
+| GET | /admin/payments?type=&status=&search= | Charges and refunds |
+| GET / POST | /admin/categories | List / create (`name`, `icon`) |
+| PUT / DELETE | /admin/categories/{id} | Update (`name`, `icon`, `sort_order`) / delete (empty only) |
+
 Admins reply in support chats with the normal `POST /conversations/{id}/messages`.
+This version adds a migration (`users.suspended_at`). On Render it runs automatically because `RUN_MIGRATIONS=true`; locally run `php artisan migrate`.
 
 ## Before going to production
 

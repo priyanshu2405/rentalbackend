@@ -14,14 +14,37 @@ class ListingModerationController extends Controller
 {
     public function __construct(private NotificationService $notifications) {}
 
+    /** ?status=pending (default) | active | paused | rejected | draft | all  &search=  &category= */
     public function index(Request $request)
     {
+        $status = $request->input('status', Item::STATUS_PENDING);
+
         return ItemResource::collection(
             Item::with(['photos', 'category', 'owner'])
-                ->where('status', $request->input('status', Item::STATUS_PENDING))
-                ->oldest('submitted_at')
-                ->paginate(30)
+                ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+                ->when($request->input('search'), function ($q, $s) {
+                    $term = "%{$s}%";
+                    $q->where(fn ($w) => $w->where('title', 'like', $term)
+                        ->orWhere('description', 'like', $term)
+                        ->orWhereHas('owner', fn ($u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term)));
+                })
+                ->when($request->input('category'), fn ($q, $c) => $q->where('category_id', $c))
+                ->orderByRaw('submitted_at IS NULL, submitted_at ASC')
+                ->latest('id')
+                ->paginate((int) $request->input('per_page', 30))
         );
+    }
+
+    /** Admin can take down a live listing (e.g. reported content). */
+    public function pause(Request $request, Item $item): JsonResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:255']]);
+        $item->forceFill(['status' => Item::STATUS_PAUSED, 'rejection_reason' => $data['reason']])->save();
+
+        $this->notifications->send($item->owner, 'listing_paused', 'updates', 'Listing paused by Neighbours Rental',
+            "{$item->title}: {$data['reason']}", ['item_id' => $item->id]);
+
+        return response()->json(['data' => new ItemResource($item->load(['photos', 'category', 'owner']))]);
     }
 
     public function approve(Item $item): JsonResponse

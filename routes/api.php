@@ -1,6 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\BookingAdminController;
+use App\Http\Controllers\Api\Admin\CategoryAdminController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\ListingModerationController;
+use App\Http\Controllers\Api\Admin\PaymentAdminController;
+use App\Http\Controllers\Api\Admin\UserAdminController;
 use App\Http\Controllers\Api\Admin\SupportAdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
@@ -195,14 +200,30 @@ Route::prefix('v1')->group(function () {
 
         // Admin
         Route::prefix('admin')->middleware('admin')->group(function () {
+            Route::get('dashboard', DashboardController::class);
+
             Route::get('listings', [ListingModerationController::class, 'index']);
+            Route::post('listings/{item}/pause', [ListingModerationController::class, 'pause']);
             Route::post('listings/{item}/approve', [ListingModerationController::class, 'approve']);
             Route::post('listings/{item}/reject', [ListingModerationController::class, 'reject']);
             Route::get('support-cases', [SupportAdminController::class, 'index']);
             Route::put('support-cases/{supportCase}', [SupportAdminController::class, 'update']);
+
+            Route::get('users', [UserAdminController::class, 'index']);
+            Route::get('users/{user}', [UserAdminController::class, 'show'])->withTrashed();
+            Route::post('users/{user}/suspend', [UserAdminController::class, 'suspend']);
+            Route::post('users/{user}/unsuspend', [UserAdminController::class, 'unsuspend']);
+            Route::put('users/{user}/admin', [UserAdminController::class, 'setAdmin']);
+
+            Route::get('bookings', [BookingAdminController::class, 'index']);
+            Route::get('bookings/{booking}', [BookingAdminController::class, 'show']);
+
+            Route::get('payments', [PaymentAdminController::class, 'index']);
+
+            Route::get('categories', [CategoryAdminController::class, 'index']);
+            Route::post('categories', [CategoryAdminController::class, 'store']);
+            Route::put('categories/{category}', [CategoryAdminController::class, 'update']);
+            Route::delete('categories/{category}', [CategoryAdminController::class, 'destroy']);
         });
     });
 });
-
-
-

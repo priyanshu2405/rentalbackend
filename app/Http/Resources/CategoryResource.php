@@ -14,6 +14,7 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'icon' => $this->icon,
+            'sort_order' => $this->sort_order,
             'items_count' => $this->whenCounted('items'),
         ];
     }

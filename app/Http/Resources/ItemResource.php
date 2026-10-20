@@ -10,7 +10,7 @@ class ItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         $viewer = $request->user();
-        $isOwner = $viewer && $viewer->id === $this->user_id;
+        $isOwner = $viewer && ($viewer->id === $this->user_id || $viewer->is_admin);
         $attrs = $this->resource->getAttributes();
 
         // Non-owners only get an approximate position (~1 km) – exact address is shared after booking.

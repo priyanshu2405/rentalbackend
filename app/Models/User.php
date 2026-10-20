@@ -32,11 +32,17 @@ class User extends Authenticatable
             'longitude' => 'float',
             'rating_avg' => 'float',
             'is_admin' => 'boolean',
+            'suspended_at' => 'datetime',
             'notify_new_items' => 'boolean',
             'notify_messages' => 'boolean',
             'notify_saved_items' => 'boolean',
             'notify_rental_updates' => 'boolean',
         ];
+    }
+
+    public function isSuspended(): bool
+    {
+        return ! is_null($this->suspended_at);
     }
 
     public function getAvatarUrlAttribute(): ?string

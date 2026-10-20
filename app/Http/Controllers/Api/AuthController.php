@@ -55,6 +55,7 @@ class AuthController extends Controller
         if (! $user || ! $user->password || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
         }
+        $this->ensureNotSuspended($user);
 
         return $this->tokenResponse($user, $data['device_name'] ?? 'mobile');
     }
@@ -86,6 +87,8 @@ class AuthController extends Controller
             $user = User::create(['name' => $payload['name'] ?? explode('@', $email)[0], 'email' => $email]);
             $created = true;
         }
+
+        $this->ensureNotSuspended($user);
 
         $user->forceFill([
             'google_id' => $payload['sub'],
@@ -191,6 +194,13 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Signed out.']);
+    }
+
+    private function ensureNotSuspended(User $user): void
+    {
+        if ($user->isSuspended()) {
+            throw ValidationException::withMessages(['email' => 'This account has been suspended. Contact support@neighboursrental.ca.']);
+        }
     }
 
     private function tokenResponse(User $user, string $device, int $status = 200): JsonResponse
