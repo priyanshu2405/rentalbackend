@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Models\SiteSetting;
 use App\Models\SupportCase;
 use Illuminate\Http\JsonResponse;
 
-/** Lookup data the app needs on launch (categories, dropdown values, fees). */
+/** Lookup data the app needs on launch (categories, dropdown values, fees, legal copy). */
 class MetaController extends Controller
 {
     public function categories()
@@ -16,6 +17,13 @@ class MetaController extends Controller
         return CategoryResource::collection(
             Category::withCount(['items' => fn ($q) => $q->where('status', 'active')])->orderBy('sort_order')->get()
         );
+    }
+
+    public function legal(): JsonResponse
+    {
+        return response()->json([
+            'data' => SiteSetting::legalDocuments(),
+        ]);
     }
 
     public function meta(): JsonResponse
@@ -31,6 +39,7 @@ class MetaController extends Controller
             'max_item_photos' => config('neighbours.max_item_photos'),
             'default_location' => config('neighbours.default_location'),
             'categories' => CategoryResource::collection(Category::orderBy('sort_order')->get()),
+            ...SiteSetting::legalDocuments(),
         ]);
     }
 }

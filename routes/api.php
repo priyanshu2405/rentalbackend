@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\BookingAdminController;
 use App\Http\Controllers\Api\Admin\CategoryAdminController;
 use App\Http\Controllers\Api\Admin\DashboardController;
+use App\Http\Controllers\Api\Admin\LegalAdminController;
 use App\Http\Controllers\Api\Admin\ListingModerationController;
 use App\Http\Controllers\Api\Admin\PaymentAdminController;
 use App\Http\Controllers\Api\Admin\UserAdminController;
@@ -34,6 +35,7 @@ Route::prefix('v1')->group(function () {
     // ---- Public ----------------------------------------------------------
     Route::get('meta', [MetaController::class, 'meta']);
     Route::get('categories', [MetaController::class, 'categories']);
+    Route::get('legal', [MetaController::class, 'legal']);
 
     // ---- Database Seeder (for Render environments without Web Shell) ----
     Route::match(['get', 'post'], 'dev/seed', function (\Illuminate\Http\Request $request) {
@@ -224,6 +226,9 @@ Route::prefix('v1')->group(function () {
             Route::post('categories', [CategoryAdminController::class, 'store']);
             Route::put('categories/{category}', [CategoryAdminController::class, 'update']);
             Route::delete('categories/{category}', [CategoryAdminController::class, 'destroy']);
+
+            Route::get('legal', [LegalAdminController::class, 'show']);
+            Route::put('legal', [LegalAdminController::class, 'update']);
         });
     });
 });
