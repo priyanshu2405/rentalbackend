@@ -22,6 +22,6 @@ class ItemPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return str_starts_with($this->path, 'http') ? $this->path : Storage::disk('public')->url($this->path);
+        return app(\App\Services\MediaStorage::class)->url($this->path) ?? '';
     }
 }

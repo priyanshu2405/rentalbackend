@@ -12,6 +12,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Replace with a Stripe implementation for production.
         $this->app->bind(PaymentGateway::class, FakePaymentGateway::class);
+        $this->app->singleton(\App\Services\MediaStorage::class);
     }
 
     public function boot(): void

@@ -45,39 +45,6 @@ return [
      |             nothing in the last 24 hours. Security deposits are always returned before pickup.
      */
     'cancellation_policies' => ['flexible', 'moderate'],
-
-    // Default legal copy returned until an admin updates them via /admin/legal.
-    'terms_of_service' => <<<'TEXT'
-Welcome to Neighbours Rental. By creating an account or using the platform, you agree to these Terms of Service.
-
-1. Community Marketplace
-Neighbours Rental connects people who want to rent everyday items from neighbours in their community. Owners are responsible for listing accurate item details and ensuring items are safe, clean, and in working condition.
-
-2. Rentals & Returns
-Renters agree to use rented items responsibly, follow any rental rules provided by the owner, and return items on time and in the same condition.
-
-3. Payments & Fees
-Payments are processed through Neighbours Rental and held until the rental is completed. Service fees and applicable cancellation policies are shown before checkout.
-
-4. Disputes & Support
-If an item is damaged, missing, or not as described, either party can report an issue through Help & support for review.
-TEXT,
-
-    'privacy_policy' => <<<'TEXT'
-Neighbours Rental respects your privacy and explains below how your information is handled.
-
-1. Information We Collect
-We collect the profile details you provide (such as your name, email address, phone number, and profile photo) along with listing, booking, and message activity.
-
-2. Location Information
-We use your approximate location to show nearby items and search radiuses. Exact pickup addresses are only shared with a renter after a booking is confirmed and paid.
-
-3. Payment Security
-Card numbers are tokenized by the payment gateway; Neighbours Rental stores only the card brand, expiry date, and last 4 digits.
-
-4. Your Controls
-You can update your profile, notification preferences, and location settings at any time, or permanently delete your account from Settings.
-TEXT,
 ];
 
 

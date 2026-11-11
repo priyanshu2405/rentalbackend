@@ -45,6 +45,8 @@ class SupportCase extends Model
 
     public function photoUrls(): array
     {
-        return array_map(fn ($p) => Storage::disk('public')->url($p), $this->photos ?? []);
+        $media = app(\App\Services\MediaStorage::class);
+
+        return array_map(fn ($p) => $media->url($p), $this->photos ?? []);
     }
 }

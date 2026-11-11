@@ -139,7 +139,7 @@ class ListingController extends Controller
         $this->authorizeOwner($request, $item);
         abort_unless($photo->item_id === $item->id, 404);
 
-        Storage::disk('public')->delete($photo->path);
+        app(\App\Services\MediaStorage::class)->delete($photo->path);
         $photo->delete();
 
         return response()->json(['data' => new ItemResource($item->load(['photos', 'category']))]);

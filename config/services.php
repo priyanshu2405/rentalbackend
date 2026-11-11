@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Permanent image storage. Copy "API environment variable" from the Cloudinary dashboard:
+    // CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
+    'cloudinary' => [
+        'url' => env('CLOUDINARY_URL'),
+        'folder' => env('CLOUDINARY_FOLDER', 'neighbours-rental'),
+    ],
+
 ];

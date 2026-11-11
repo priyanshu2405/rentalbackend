@@ -38,6 +38,10 @@ services:
         value: sync
       - key: FILESYSTEM_DISK
         value: public
+      # Permanent photo storage (Render's disk is wiped on restart/redeploy).
+      # Set in the Render dashboard: cloudinary://<api_key>:<api_secret>@<cloud_name>
+      - key: CLOUDINARY_URL
+        sync: false
       - key: MAIL_MAILER
         value: log
       - key: NR_CURRENCY

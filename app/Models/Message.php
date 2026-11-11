@@ -27,6 +27,6 @@ class Message extends Model
 
     public function getAttachmentUrlAttribute(): ?string
     {
-        return $this->attachment_path ? Storage::disk('public')->url($this->attachment_path) : null;
+        return app(\App\Services\MediaStorage::class)->url($this->attachment_path);
     }
 }

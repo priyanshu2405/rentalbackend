@@ -121,7 +121,8 @@ class ConversationController extends Controller
             $conversation->load('participants');
         }
 
-        $path = $request->file('attachment')?->store("messages/{$conversation->id}", 'public');
+        $file = $request->file('attachment');
+        $path = $file ? app(\App\Services\MediaStorage::class)->store($file, "messages/{$conversation->id}") : null;
         $message = $this->messaging->post($conversation->load('participants'), $user, $request->input('body'), $path);
 
         return response()->json(['data' => new MessageResource($message->load('sender'))], 201);

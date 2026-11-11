@@ -46,10 +46,10 @@ class ProfileController extends Controller
         $request->validate(['avatar' => ['required', 'image', 'max:5120']]);
         $user = $request->user();
 
-        if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
-        }
-        $user->update(['avatar_path' => $request->file('avatar')->store('avatars', 'public')]);
+        $media = app(\App\Services\MediaStorage::class);
+        $old = $user->avatar_path;
+        $user->update(['avatar_path' => $media->store($request->file('avatar'), 'avatars')]);
+        $media->delete($old);
 
         return response()->json(['user' => new UserResource($user)]);
     }
@@ -128,9 +128,7 @@ class ProfileController extends Controller
         $user->tokens()->delete();
         $user->paymentMethods()->delete();
 
-        if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
-        }
+        app(\App\Services\MediaStorage::class)->delete($user->avatar_path);
 
         $user->forceFill([
             'name' => 'Deleted user',
